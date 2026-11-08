@@ -156,7 +156,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - Add `frontend_ready` / `pending` drain (section 3).
 - **Check (PRD section 9):** suspend 10 min mid-countdown, no burst, countdown resumes. Reboot: repeats restart full interval.
 
-### Phase 5: Custom reminders
+### Phase 5: Custom reminders ✅ DONE
 - Backend: `add_custom`, `delete_reminder`, one-shot removal after firing (delete from list, save).
 - Frontend: custom list under built-ins, each: toggle, edit, delete (delete shows `ConfirmModal`). "Add reminder" opens a `ModalRoot` form: `TextField` (label, Steam keyboard opens by default), `DropdownItem` or two buttons for once vs repeat, minutes `SliderField`.
 - Edit uses the same form, prefilled.

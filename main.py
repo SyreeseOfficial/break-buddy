@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import time
+import uuid
 
 import decky
 
@@ -17,7 +18,8 @@ BUILTINS = [
     {"id": "posture", "label": "Posture check", "message": "Posture check: sit up, relax shoulders", "interval_seconds": 1200, "enabled": False},
     {"id": "wrist", "label": "Hand/wrist stretch", "message": "Stretch your hands and wrists", "interval_seconds": 2700, "enabled": False},
 ]
-PATCH_KEYS = {"enabled", "interval_seconds"}  # ponytail: label/message/mode/fire_at join in Phase 5 (custom reminders)
+PATCH_KEYS = {"enabled", "interval_seconds", "label", "message", "mode", "fire_at"}
+CUSTOM_ONLY_KEYS = {"label", "message", "mode", "fire_at"}  # built-ins only get enabled + interval
 
 
 def default_builtins():
@@ -49,6 +51,14 @@ class Plugin:
                 if s:
                     r["enabled"] = bool(s["enabled"])
                     r["interval_seconds"] = self._clamp(s["interval_seconds"])
+            for s in data["reminders"]:
+                if s.get("type") == "custom":
+                    self.reminders.append({
+                        "id": str(s["id"]), "label": str(s["label"]), "message": str(s["message"]),
+                        "type": "custom", "mode": "once" if s["mode"] == "once" else "repeat",
+                        "interval_seconds": self._clamp(s["interval_seconds"]),
+                        "fire_at": s.get("fire_at"), "enabled": bool(s["enabled"]),
+                    })
         except FileNotFoundError:
             pass
         except Exception as e:  # corrupt file: fall back to defaults rather than crash the plugin
@@ -146,11 +156,51 @@ class Plugin:
             raise ValueError(f"Unknown reminder: {id}")
         if not set(patch) <= PATCH_KEYS:
             raise ValueError(f"Unknown patch keys: {set(patch) - PATCH_KEYS}")
+        if r["type"] == "builtin" and set(patch) & CUSTOM_ONLY_KEYS:
+            raise ValueError("Built-in reminders only allow enabled and interval_seconds")
         if "enabled" in patch:
             r["enabled"] = bool(patch["enabled"])
         if "interval_seconds" in patch:
             r["interval_seconds"] = self._clamp(patch["interval_seconds"])
+        for k in ("label", "message"):
+            if k in patch:
+                r[k] = str(patch[k]).strip()[:100] or r[k]
+        if "mode" in patch:
+            if patch["mode"] not in ("once", "repeat"):
+                raise ValueError("mode must be once or repeat")
+            r["mode"] = patch["mode"]
+        if "fire_at" in patch:
+            r["fire_at"] = float(patch["fire_at"])
+        if r["mode"] == "once" and r["fire_at"] is None:
+            raise ValueError("One-shot needs fire_at")
+        if r["mode"] == "repeat":
+            r["fire_at"] = None
         self._restart(r)  # D8/D9: any change restarts this countdown
+        self._save()
+        return self._state()
+
+    async def add_custom(self, label: str, mode: str, minutes: int):
+        if mode not in ("once", "repeat"):
+            raise ValueError("mode must be once or repeat")
+        label = str(label).strip()[:100]
+        if not label:
+            raise ValueError("Label required")
+        secs = self._clamp(int(minutes) * 60)
+        r = {
+            "id": uuid.uuid4().hex, "label": label, "message": label, "type": "custom", "mode": mode,
+            "interval_seconds": secs, "fire_at": time.time() + secs if mode == "once" else None, "enabled": True,
+        }
+        self.reminders.append(r)
+        self._restart(r)
+        self._save()
+        return self._state()
+
+    async def delete_reminder(self, id: str):
+        r = next((r for r in self.reminders if r["id"] == id), None)
+        if r is None or r["type"] != "custom":
+            raise ValueError(f"Not a custom reminder: {id}")
+        self.reminders.remove(r)
+        self.deadlines.pop(id, None)
         self._save()
         return self._state()
 

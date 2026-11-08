@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
-import { PanelSection, PanelSectionRow, SliderField, ToggleField, staticClasses } from "@decky/ui";
+import {
+  ButtonItem,
+  ConfirmModal,
+  PanelSection,
+  PanelSectionRow,
+  SliderField,
+  ToggleField,
+  showModal,
+  staticClasses,
+} from "@decky/ui";
 import { addEventListener, callable, definePlugin, removeEventListener, toaster } from "@decky/api";
 import { FaRegBell } from "react-icons/fa";
+import { CustomForm } from "./components/CustomForm";
 
 interface Reminder {
   id: string;
@@ -21,9 +31,12 @@ interface State {
 
 const getState = callable<[], State>("get_state");
 const setMaster = callable<[enabled: boolean], State>("set_master");
-const updateReminder = callable<[id: string, patch: Partial<Pick<Reminder, "enabled" | "interval_seconds">>], State>(
-  "update_reminder"
-);
+const updateReminder = callable<
+  [id: string, patch: Partial<Pick<Reminder, "enabled" | "interval_seconds" | "label" | "message" | "mode" | "fire_at">>],
+  State
+>("update_reminder");
+const addCustom = callable<[label: string, mode: "once" | "repeat", minutes: number], State>("add_custom");
+const deleteReminder = callable<[id: string], State>("delete_reminder");
 
 const frontendReady = callable<[], { id: string; title: string }[]>("frontend_ready");
 const frontendGone = callable<[], void>("frontend_gone");
@@ -58,6 +71,50 @@ function Content() {
 
   if (!state) return null;
 
+  const builtins = state.reminders.filter((r) => r.type === "builtin");
+  const customs = state.reminders.filter((r) => r.type === "custom");
+
+  const openAdd = () =>
+    showModal(
+      <CustomForm
+        title="Add reminder"
+        initial={{ label: "", mode: "once", minutes: 15 }}
+        onSave={(v) => addCustom(v.label, v.mode, v.minutes).then(setState)}
+      />
+    );
+
+  const openEdit = (r: Reminder) =>
+    showModal(
+      <CustomForm
+        title="Edit reminder"
+        initial={{
+          label: r.label,
+          mode: r.mode,
+          // one-shot: show minutes left (rounded to the slider's 5-min step); repeat: its interval
+          minutes: Math.min(120, Math.max(5, Math.round(((r.mode === "once" && r.next_fire ? r.next_fire - Date.now() / 1000 : r.interval_seconds)) / 300) * 5)),
+        }}
+        onSave={(v) =>
+          updateReminder(r.id, {
+            label: v.label,
+            message: v.label,
+            mode: v.mode,
+            ...(v.mode === "once" ? { fire_at: Date.now() / 1000 + v.minutes * 60 } : { interval_seconds: v.minutes * 60 }),
+          }).then(setState)
+        }
+      />
+    );
+
+  const confirmDelete = (r: Reminder) =>
+    showModal(
+      <ConfirmModal
+        strTitle="Delete reminder?"
+        strDescription={r.label}
+        strOKButtonText="Delete"
+        bDestructiveWarning
+        onOK={() => deleteReminder(r.id).then(setState)}
+      />
+    );
+
   return (
     <>
       <PanelSection title="Break Buddy">
@@ -66,7 +123,7 @@ function Content() {
         </PanelSectionRow>
       </PanelSection>
       <PanelSection title="Built-in reminders">
-        {state.reminders.map((r) => (
+        {builtins.map((r) => (
           <div key={r.id}>
             <PanelSectionRow>
               <ToggleField
@@ -97,6 +154,36 @@ function Content() {
             )}
           </div>
         ))}
+      </PanelSection>
+      <PanelSection title="Custom reminders">
+        {customs.map((r) => (
+          <div key={r.id}>
+            <PanelSectionRow>
+              <ToggleField
+                label={r.label}
+                description={r.enabled && state.master_enabled && r.next_fire ? `Next in ${mmss(r.next_fire - now / 1000)}` : undefined}
+                checked={r.enabled}
+                disabled={!state.master_enabled}
+                onChange={(v) => updateReminder(r.id, { enabled: v }).then(setState)}
+              />
+            </PanelSectionRow>
+            <PanelSectionRow>
+              <ButtonItem layout="below" onClick={() => openEdit(r)}>
+                Edit
+              </ButtonItem>
+            </PanelSectionRow>
+            <PanelSectionRow>
+              <ButtonItem layout="below" onClick={() => confirmDelete(r)}>
+                Delete
+              </ButtonItem>
+            </PanelSectionRow>
+          </div>
+        ))}
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={openAdd}>
+            Add reminder
+          </ButtonItem>
+        </PanelSectionRow>
       </PanelSection>
     </>
   );
