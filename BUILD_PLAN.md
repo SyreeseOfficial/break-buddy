@@ -144,7 +144,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - Frontend: listen `reminder_fired`, call `toaster.toast`. QAM: one toggle.
 - **Check:** toast fires; toggle off stops it; reload plugin leaves one loop only (log timer start/stop).
 
-### Phase 3: Reminder model + persistence + master toggle
+### Phase 3: Reminder model + persistence + master toggle ✅ DONE
 - Backend: `Reminder` dicts, load/save `settings.json`, 4 built-ins, `get_state`/`set_master`/`update_reminder`.
 - Frontend: master `ToggleField`; per built-in: `ToggleField`, `SliderField` (5-120, step 5, minutes), "next in mm:ss" (client `setInterval` 1 s, display only).
 - Collapsible rows: grep `@decky/ui` exports for a collapsible component and use it if found. Else fallback: one `ToggleField` row plus slider and countdown shown only when enabled (decision 4, section 9).
