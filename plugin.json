@@ -1,0 +1,11 @@
+{
+  "name": "Break Buddy",
+  "author": "Syreese Delos Santos",
+  "flags": ["debug"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["utility"],
+    "description": "Gentle wellness reminders while you game: eye breaks, hydration, posture, and custom reminders.",
+    "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
+  }
+}

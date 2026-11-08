@@ -131,7 +131,7 @@ Validation lives in the backend at these boundaries only. Frontend trusts backen
 
 Each phase = one working, testable chunk. Syreese tests on the Deck, then says "next".
 
-### Phase 1: Scaffold
+### Phase 1: Scaffold ✅ DONE
 - Copy template files into repo root (keep template `LICENSE` at bottom of ours; Syreese's license goes on top, PRD section 11).
 - `plugin.json`: name "Break Buddy", author, drop `_root` flag, real description.
 - `package.json`: name `break-buddy`, author, description.
