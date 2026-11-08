@@ -29,6 +29,8 @@ class Plugin:
         self.master_enabled = True
         self.reminders = default_builtins()
         self.deadlines = {}  # id -> time.monotonic() deadline; never persisted (D6)
+        self.pending = []  # fired while the frontend wasn't listening: {id, title, ts}
+        self.listening = False
         self._load()
         self._restart_all()
         self.task = asyncio.create_task(self._tick_loop())
@@ -72,7 +74,7 @@ class Plugin:
         return min(7200, max(300, round(int(seconds) / 300) * 300))
 
     def _restart(self, r):
-        if self.master_enabled and r["enabled"]:
+        if self.master_enabled and r["enabled"] and r["mode"] == "repeat":
             self.deadlines[r["id"]] = time.monotonic() + (DEV_INTERVAL or r["interval_seconds"])
         else:
             self.deadlines.pop(r["id"], None)
@@ -81,16 +83,41 @@ class Plugin:
         for r in self.reminders:
             self._restart(r)
 
+    async def _fire(self, r):
+        decky.logger.info(f"Reminder fired: {r['id']}")
+        if self.listening:
+            await decky.emit("reminder_fired", r["id"], r["message"])
+        else:
+            self.pending = (self.pending + [{"id": r["id"], "title": r["message"], "ts": time.time()}])[-10:]
+
     async def _tick_loop(self):
+        last_m, last_t = time.monotonic(), time.time()
         while True:
             await asyncio.sleep(1)
-            now = time.monotonic()
-            for r in self.reminders:
-                d = self.deadlines.get(r["id"])
-                if d is not None and now >= d:
-                    self._restart(r)
-                    decky.logger.info(f"Reminder fired: {r['id']}")
-                    await decky.emit("reminder_fired", r["id"], r["message"])
+            now_m, now_t = time.monotonic(), time.time()
+            # CLOCK_MONOTONIC stops during suspend, wall clock doesn't: a gap means we just resumed.
+            # Repeat deadlines are monotonic so they already resume with time left (D1/D2, no burst).
+            resumed = (now_t - last_t) - (now_m - last_m) > 5
+            last_m, last_t = now_m, now_t
+            changed = False
+            for r in list(self.reminders):
+                if not self.master_enabled or not r["enabled"]:
+                    continue
+                if r["mode"] == "once":
+                    # wall-clock; also covers overdue-on-startup and overdue-on-resume (fires once)
+                    if r["fire_at"] is not None and now_t >= r["fire_at"]:
+                        self.reminders.remove(r)  # one-shots are removed after firing
+                        changed = True
+                        await self._fire(r)
+                else:
+                    d = self.deadlines.get(r["id"])
+                    if d is not None and now_m >= d:
+                        self._restart(r)
+                        await self._fire(r)
+            if changed:
+                self._save()
+            if resumed or changed:
+                await decky.emit("state_changed")
 
     # ---- bridge ----
 
@@ -99,7 +126,7 @@ class Plugin:
         return {
             "master_enabled": self.master_enabled,
             "reminders": [
-                {**r, "next_fire": now_t + (self.deadlines[r["id"]] - now_m) if r["id"] in self.deadlines else None}
+                {**r, "next_fire": r["fire_at"] if r["mode"] == "once" else (now_t + (self.deadlines[r["id"]] - now_m) if r["id"] in self.deadlines else None)}
                 for r in self.reminders
             ],
         }
@@ -126,6 +153,15 @@ class Plugin:
         self._restart(r)  # D8/D9: any change restarts this countdown
         self._save()
         return self._state()
+
+    async def frontend_ready(self):
+        # Steam UI (re)loaded: hand over what fired while nobody was listening, skipping stale items (>10 min)
+        self.listening = True
+        items, self.pending = [p for p in self.pending if time.time() - p["ts"] < 600], []
+        return items
+
+    async def frontend_gone(self):
+        self.listening = False
 
     async def _unload(self):
         self.task.cancel()

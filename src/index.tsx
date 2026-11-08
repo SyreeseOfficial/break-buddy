@@ -25,6 +25,9 @@ const updateReminder = callable<[id: string, patch: Partial<Pick<Reminder, "enab
   "update_reminder"
 );
 
+const frontendReady = callable<[], { id: string; title: string }[]>("frontend_ready");
+const frontendGone = callable<[], void>("frontend_gone");
+
 function mmss(secs: number) {
   const s = Math.max(0, Math.floor(secs));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -46,7 +49,11 @@ function Content() {
   useEffect(() => {
     const refresh = () => getState().then(setState);
     addEventListener("reminder_fired", refresh);
-    return () => removeEventListener("reminder_fired", refresh);
+    addEventListener("state_changed", refresh); // e.g. after resume from suspend
+    return () => {
+      removeEventListener("reminder_fired", refresh);
+      removeEventListener("state_changed", refresh);
+    };
   }, []);
 
   if (!state) return null;
@@ -97,11 +104,14 @@ function Content() {
 
 export default definePlugin(() => {
   // Registered here (not in Content) so toasts show even when the QAM is closed.
-  const onFired = (_id: string, title: string) => {
+  const show = (title: string) => {
     // body is required by ToastData; empty = title only (PRD 3.4)
     toaster.toast({ title, body: "", duration: 5000 });
   };
+  const onFired = (_id: string, title: string) => show(title);
   addEventListener<[string, string]>("reminder_fired", onFired);
+  // Tell backend we're listening; it returns anything that fired while the UI was gone.
+  frontendReady().then((items) => items.forEach((i) => show(i.title)));
 
   return {
     name: "Break Buddy",
@@ -110,6 +120,7 @@ export default definePlugin(() => {
     icon: <FaRegBell />,
     onDismount() {
       removeEventListener("reminder_fired", onFired);
+      frontendGone();
     },
   };
 });

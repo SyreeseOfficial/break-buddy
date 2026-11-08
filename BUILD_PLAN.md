@@ -150,7 +150,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - Collapsible rows: grep `@decky/ui` exports for a collapsible component and use it if found. Else fallback: one `ToggleField` row plus slider and countdown shown only when enabled (decision 4, section 9).
 - **Check:** settings survive Steam restart. Interval change restarts countdown. Toggle off/on restarts.
 
-### Phase 4: Suspend + restart behavior
+### Phase 4: Suspend + restart behavior ✅ DONE
 - Add wall-vs-monotonic gap detection (section 3). Emit `state_changed` after a suspend.
 - One-shot overdue-on-resume and overdue-on-startup logic.
 - Add `frontend_ready` / `pending` drain (section 3).
