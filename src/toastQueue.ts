@@ -1,6 +1,7 @@
 import { toaster } from "@decky/api";
 
-const DURATION = 5000;
+
+const DURATION = 8000;
 const GAP = 1500;
 
 const queue: string[] = [];

@@ -166,11 +166,11 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - Frontend sequential toast loop. "Send test toast" button. "Reset to defaults" with `showModal(<ConfirmModal .../>)`.
 - **Check:** two reminders due together show one after another.
 
-### Phase 7: Sound (timeboxed, 1 hour)
+### Phase 7: Sound ✅ DONE (tried, no sound on Deck, code removed)
 - Port autosuspend's `findModuleChild` lookup for `"ToastMisc"`. Pass `sound: NavSoundMap.<name>` in the toast call. Try one fixed sound; no picker.
 - If it doesn't play over a running game: delete the code, do not add toggles. Note outcome in `PRD.md` section 3.1.
 
-### Phase 8: Hardware pass + dogfood
+### Phase 8: Hardware pass + dogfood (TESTING.md template ready; Syreese runs it)
 - Run PRD section 9 checklist top to bottom. Log results in `TESTING.md` (pass/fail, notes).
 
 ## 7. File layout

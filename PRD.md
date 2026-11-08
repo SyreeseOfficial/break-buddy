@@ -36,7 +36,7 @@ A Decky Loader plugin for Steam Deck (Gaming Mode) that nudges the player to loo
 
 Per reminder: on/off, interval (slider, 5 to 120 min, 5-min steps). Message text is title only (e.g. "Drink some water", "Eye break: look 20 ft away for 20 sec") and is not user-editable for built-ins in v1.
 
-Sound is "try, don't build": use the toast API's built-in sound parameter if it works for free. If it is fiddly, drop sound entirely (remove sound toggle and notification-style setting).
+Sound outcome: tried in Phase 7, no sound played on the Deck; removed (no sound toggle). Original plan: use the toast API's built-in sound parameter if it works for free. If it is fiddly, drop sound entirely (remove sound toggle and notification-style setting).
 
 ### 3.2 Custom reminders (full custom in v1)
 
