@@ -139,7 +139,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - **Check:** `pnpm install && pnpm build` succeeds. Loads on Deck.
 - Also commit `.gitignore` (node_modules, dist, out).
 
-### Phase 2: One timer, one toast
+### Phase 2: One timer, one toast ✅ DONE
 - Backend: 1 s tick loop in `_main` (task stored on `self`, cancelled in `_unload`). One hardcoded 20-min repeat, plus env override or a debug value of 15 s while developing (remove or leave as constant `DEV_INTERVAL`).
 - Frontend: listen `reminder_fired`, call `toaster.toast`. QAM: one toggle.
 - **Check:** toast fires; toggle off stops it; reload plugin leaves one loop only (log timer start/stop).
