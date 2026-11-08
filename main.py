@@ -204,6 +204,16 @@ class Plugin:
         self._save()
         return self._state()
 
+    async def test_toast(self):
+        await decky.emit("reminder_fired", "test", "Break Buddy test")
+
+    async def reset_defaults(self):
+        # restore built-ins, keep custom reminders
+        self.reminders = default_builtins() + [r for r in self.reminders if r["type"] == "custom"]
+        self._restart_all()
+        self._save()
+        return self._state()
+
     async def frontend_ready(self):
         # Steam UI (re)loaded: hand over what fired while nobody was listening, skipping stale items (>10 min)
         self.listening = True

@@ -9,8 +9,9 @@ import {
   showModal,
   staticClasses,
 } from "@decky/ui";
-import { addEventListener, callable, definePlugin, removeEventListener, toaster } from "@decky/api";
+import { addEventListener, callable, definePlugin, removeEventListener } from "@decky/api";
 import { FaRegBell } from "react-icons/fa";
+import { enqueueToast } from "./toastQueue";
 import { CustomForm } from "./components/CustomForm";
 
 interface Reminder {
@@ -36,6 +37,8 @@ const updateReminder = callable<
   State
 >("update_reminder");
 const addCustom = callable<[label: string, mode: "once" | "repeat", minutes: number], State>("add_custom");
+const testToast = callable<[], void>("test_toast");
+const resetDefaults = callable<[], State>("reset_defaults");
 const deleteReminder = callable<[id: string], State>("delete_reminder");
 
 const frontendReady = callable<[], { id: string; title: string }[]>("frontend_ready");
@@ -101,6 +104,17 @@ function Content() {
             ...(v.mode === "once" ? { fire_at: Date.now() / 1000 + v.minutes * 60 } : { interval_seconds: v.minutes * 60 }),
           }).then(setState)
         }
+      />
+    );
+
+  const confirmReset = () =>
+    showModal(
+      <ConfirmModal
+        strTitle="Reset to defaults?"
+        strDescription="Restores the built-in reminders. Custom reminders are kept."
+        strOKButtonText="Reset"
+        bDestructiveWarning
+        onOK={() => resetDefaults().then(setState)}
       />
     );
 
@@ -185,16 +199,25 @@ function Content() {
           </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
+      <PanelSection title="Utilities">
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={() => testToast()}>
+            Send test toast
+          </ButtonItem>
+        </PanelSectionRow>
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={confirmReset}>
+            Reset to defaults
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
     </>
   );
 }
 
 export default definePlugin(() => {
   // Registered here (not in Content) so toasts show even when the QAM is closed.
-  const show = (title: string) => {
-    // body is required by ToastData; empty = title only (PRD 3.4)
-    toaster.toast({ title, body: "", duration: 5000 });
-  };
+  const show = enqueueToast;
   const onFired = (_id: string, title: string) => show(title);
   addEventListener<[string, string]>("reminder_fired", onFired);
   // Tell backend we're listening; it returns anything that fired while the UI was gone.

@@ -162,7 +162,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 - Edit uses the same form, prefilled.
 - **Check:** one-shot across Steam restart and reboot fires once.
 
-### Phase 6: Toast queue, test toast, reset
+### Phase 6: Toast queue, test toast, reset ✅ DONE
 - Frontend sequential toast loop. "Send test toast" button. "Reset to defaults" with `showModal(<ConfirmModal .../>)`.
 - **Check:** two reminders due together show one after another.
 
