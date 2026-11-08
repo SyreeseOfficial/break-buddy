@@ -1,4 +1,5 @@
 import { toaster } from "@decky/api";
+import soundUrl from "./sound";
 
 
 const DURATION = 8000;
@@ -17,6 +18,7 @@ async function run() {
   running = true;
   while (queue.length) {
     // body is required by ToastData; empty = title only
+    try { void new Audio(soundUrl).play(); } catch {}
     toaster.toast({ title: queue.shift()!, body: "", duration: DURATION });
     await new Promise((res) => setTimeout(res, DURATION + GAP));
   }
