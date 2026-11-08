@@ -147,7 +147,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 ### Phase 3: Reminder model + persistence + master toggle
 - Backend: `Reminder` dicts, load/save `settings.json`, 4 built-ins, `get_state`/`set_master`/`update_reminder`.
 - Frontend: master `ToggleField`; per built-in: `ToggleField`, `SliderField` (5-120, step 5, minutes), "next in mm:ss" (client `setInterval` 1 s, display only).
-- Collapsible rows: use `PanelSection` with `spinner`-free collapse or `Focusable` toggle. Cheapest: one `ToggleField` row plus the slider and countdown shown only when enabled. Revisit if Syreese wants real collapse.
+- Collapsible rows: grep `@decky/ui` exports for a collapsible component and use it if found. Else fallback: one `ToggleField` row plus slider and countdown shown only when enabled (decision 4, section 9).
 - **Check:** settings survive Steam restart. Interval change restarts countdown. Toggle off/on restarts.
 
 ### Phase 4: Suspend + restart behavior
@@ -158,7 +158,7 @@ Each phase = one working, testable chunk. Syreese tests on the Deck, then says "
 
 ### Phase 5: Custom reminders
 - Backend: `add_custom`, `delete_reminder`, one-shot removal after firing (delete from list, save).
-- Frontend: custom list under built-ins, each: toggle, edit, delete (`ConfirmModal`? skip, delete directly unless Syreese wants confirm). "Add reminder" opens a `ModalRoot` form: `TextField` (label, Steam keyboard opens by default), `DropdownItem` or two buttons for once vs repeat, minutes `SliderField`.
+- Frontend: custom list under built-ins, each: toggle, edit, delete (delete shows `ConfirmModal`). "Add reminder" opens a `ModalRoot` form: `TextField` (label, Steam keyboard opens by default), `DropdownItem` or two buttons for once vs repeat, minutes `SliderField`.
 - Edit uses the same form, prefilled.
 - **Check:** one-shot across Steam restart and reboot fires once.
 
@@ -205,10 +205,10 @@ Keep `main.py` as one file. Split only if it passes ~300 lines.
 - After any backend mutation, return the full State so the UI never drifts.
 - Ports 1337/8080 are Decky's. CEF debugging: `http://<deck-ip>:8081`.
 
-## 9. Open questions for Syreese
+## 9. Decisions (answered by Syreese)
 
-1. **PRD conflict on resume.** D1 says "countdown pauses on suspend" (so it resumes with the same time left). D2 says "interval restarts" on resume. The test checklist says "countdown resumes." Plan assumes **resume with remaining time**. Want a full restart instead?
-2. **Store name check.** Can you search plugins.deckbrew.xyz for similar plugins and the name "Break Buddy"? I couldn't verify.
-3. **Delete confirmation.** Custom reminder delete: instant, or confirm dialog? Plan assumes instant.
-4. **Collapsible rows.** Real expand/collapse, or the cheaper "controls show only when enabled"? Plan assumes cheaper.
-5. **Pending cap.** If a reminder fires while the Steam UI is reloading, plan delivers it on reconnect if under 10 min old. OK?
+1. **Resume:** countdown resumes with time left (easy with monotonic, see section 3). Fallback if it proves hard: just pause on suspend.
+2. **Name check:** skipped, not blocking. Revisit before store submission.
+3. **Custom delete:** needs a confirm dialog (`ConfirmModal`).
+4. **Collapsible rows:** use real expand/collapse if `@decky/ui` has a component for it (grep its exports in Phase 3). If not, use the best-looking option Decky supports; default fallback is controls shown only when the reminder is enabled.
+5. **Late toasts:** deliver on reconnect if under 10 min old. Approved.
